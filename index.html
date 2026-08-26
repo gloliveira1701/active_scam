@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab de Reconhecimento Ofensivo & Análise de Tráfego</title>
+    <meta name="description" content="Laboratório pedagógico para treinamento prático de varreduras com Nmap, análise de pacotes com Wireshark, e fuzzing com ffuf.">
+    
+    <!-- Google Fonts: Inter e Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Link para a folha de estilo customizada -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Fundo Cibernético Animado -->
+    <div class="cyber-grid"></div>
+
+    <header class="app-header">
+        <div class="header-logo">
+            <div class="glow-dot"></div>
+            <h1>NET-SCAN LAB</h1>
+            <span class="badge badge-accent">V1.0.0</span>
+        </div>
+        <div class="lab-status-bar">
+            <div class="status-item" id="status-score-top" style="border-right: 1px solid var(--border-color); padding-right: 1rem;">
+                <span class="label">Pontuação:</span>
+                <span class="value text-success" id="stats-score-header" style="font-weight: 800; font-size: 1.1rem; text-shadow: 0 0 10px rgba(0,255,102,0.4);">0 Pts</span>
+            </div>
+            <div class="status-item" id="status-privilege">
+                <span class="label">Privilégios:</span>
+                <span class="value text-warning">Verificando...</span>
+            </div>
+            <div class="status-item" id="status-sniffer">
+                <span class="label">IDS Sniffer:</span>
+                <span class="value text-warning">Verificando...</span>
+            </div>
+            <div class="status-item" id="status-ftp">
+                <span class="label">Porta 9001:</span>
+                <span class="value text-success">Ativa</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-layout">
+        <!-- Barra de Navegação Lateral -->
+        <aside class="sidebar">
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-target="dashboard" id="btn-nav-dashboard">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                    Painel Geral
+                </button>
+                <button class="nav-btn" data-target="teoria" id="btn-nav-teoria">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5.49 9L12 5.6 18.51 9 12 12.4 5.49 9zm.51 6.68v3.58L12 23l6-3.74v-3.58l-6 3.26-6-3.26z"/></svg>
+                    Fundamentação
+                </button>
+                <button class="nav-btn" data-target="toolkits" id="btn-nav-toolkits">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.3C.5 6.7.9 9.8 2.9 11.8c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.4-2.4c.4-.4.4-1.1 0-1.4z"/></svg>
+                    ToolKits
+                </button>
+                <button class="nav-btn" data-target="desafios" id="btn-nav-desafios">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                    Desafios (CTF)
+                </button>
+                <button class="nav-btn" data-target="desempenho" id="btn-nav-desempenho">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                    Desempenho
+                </button>
+                <button class="nav-btn" data-target="ids" id="btn-nav-ids">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    IDS Console <span class="pulse-indicator red-glow"></span>
+                </button>
+            </nav>
+            
+            <!-- Widget do Firewall Simulado -->
+            <div class="firewall-widget">
+                <span class="widget-title">Simulador de Firewall</span>
+                <div class="firewall-switch-container">
+                    <span class="firewall-status-label text-danger" id="firewall-status">INATIVO</span>
+                    <label class="switch">
+                        <input type="checkbox" id="firewall-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Widget de Progresso do Aluno -->
+            <div class="progress-widget">
+                <span class="widget-title">Progresso Geral</span>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progress-fill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-labels">
+                    <span id="progress-percent">0% Concluído</span>
+                    <span id="progress-fraction">0/100 Resolvidos</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Área de Conteúdo Principal -->
+        <main class="main-content">
+            
+            <!-- SECTION: DASHBOARD -->
+            <section id="pane-dashboard" class="content-pane active">
+                <div class="welcome-banner">
+                    <h2>Seja Bem-vindo ao Laboratório Prático de Varredura ativa.</h2>
+                    <p class="author-tag">Criado por <strong>Professor Engenheiro Guilherme Legal de Oliveira</strong>.</p>
+                    <p style="margin-top: 1rem;">Aqui você irá explorar na prática como as varreduras de rede funcionam, analisando a movimentação de cabeçalhos no fio e dominando as ferramentas de reconhecimento e evasão de forma segura e local.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue-glow">📶</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stats-scans-count">0</span>
+                            <span class="stat-label">Probes TCP Capturados</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple-glow">⚡</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stats-stealth-count">0</span>
+                            <span class="stat-label">Varreduras Furtivas</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green-glow">🏁</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stats-completed">0/100</span>
+                            <span class="stat-label">Desafios Concluídos</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange-glow">🏆</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stats-score">0</span>
+                            <span class="stat-label">Pontuação Total</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-details">
+                    <div class="card card-wide">
+                        <h3>Guia Rápido de Inicialização</h3>
+                        <p>Siga os passos abaixo para preparar seu ambiente de testes no Kali Linux local:</p>
+                        <div class="terminal-mock">
+                            <div class="terminal-header">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                                <span class="title">terminal - Kali Linux</span>
+                            </div>
+                            <div class="terminal-body">
+                                <p class="command"><span class="prompt">kali@kali:~$</span> # 1. Garanta que as ferramentas necessárias estão instaladas</p>
+                                <p class="output">sudo apt update && sudo apt install -y nmap wireshark ffuf hping3 netcat-traditional</p>
+                                <p class="command"><span class="prompt">kali@kali:~$</span> # 2. Abra o Wireshark em segundo plano monitorando a interface de loopback</p>
+                                <p class="output">wireshark -k -i lo &</p>
+                                <p class="command"><span class="prompt">kali@kali:~$</span> # 3. Inicie suas análises explorando a aba de Desafios!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: TEORIA -->
+            <section id="pane-teoria" class="content-pane">
+                <div class="page-header">
+                    <h2>Fundamentação Teórica e Fisiologia de Protocolo</h2>
+                    <p>Estudo aprofundado sobre camadas de transporte, evasão de firewalls e bases legais.</p>
+                </div>
+
+                <!-- Abas da Teoria -->
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-tab="tab-l4">Fisiologia TCP L4</button>
+                    <button class="tab-btn" data-tab="tab-stealth">Varreduras & Evasão</button>
+                    <button class="tab-btn" data-tab="tab-simulator">Simulador Interativo</button>
+                    <button class="tab-btn" data-tab="tab-legal">Marco Regulatório</button>
+                </div>
+
+                <!-- TAB: FISIOLOGIA L4 -->
+                <div id="tab-l4" class="tab-content active">
+                    <h3>Ciclo de Vida do Handshake TCP/IP e RFC 793</h3>
+                    <p>O Protocolo de Controle de Transmissão (TCP) é orientado à conexão. A tabela abaixo resume como o kernel responde a cada estado de porta segundo as regras da RFC 793 / RFC 9293:</p>
+                    
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Estado de Porta</th>
+                                    <th>Comportamento do Kernel / Firewall</th>
+                                    <th>Resposta Observada no Fio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong class="text-success">Aberta (Open)</strong></td>
+                                    <td>Processo ativo escutando na porta; chamada accept() aguardando conexão.</td>
+                                    <td>TCP <code>[SYN, ACK]</code> ou resposta direta da aplicação.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong class="text-danger">Fechada (Closed)</strong></td>
+                                    <td>Host online; kernel recebe o pacote mas não há processo ouvindo na porta destino.</td>
+                                    <td>TCP <code>[RST, ACK]</code> ou <code>ICMP Type 3 Code 3</code> (UDP).</td>
+                                </tr>
+                                <tr>
+                                    <td><strong class="text-warning">Filtrada (Filtered)</strong></td>
+                                    <td>Firewall com/sem estado descarta ou bloqueia o pacote de auditoria.</td>
+                                    <td>Ausência de resposta (Timeout) ou <code>ICMP Type 3 Code 1/2/9/10/13</code>.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB: STEALTH & EVASÃO -->
+                <div id="tab-stealth" class="tab-content">
+                    <h3>Técnicas de Varreduras Clássicas vs. Stealth</h3>
+                    
+                    <div class="grid-2col">
+                        <div class="card">
+                            <h4>TCP Connect Scan (<code>-sT</code>)</h4>
+                            <p>Executa o handshake de 3 vias completo usando a syscall <code>connect()</code> do sistema operacional. É extremamente barulhento porque obriga o sistema de destino a logar a conexão completa no nível de aplicação.</p>
+                            <span class="badge badge-info">Handshake Completo</span>
+                        </div>
+                        <div class="card">
+                            <h4>TCP SYN Stealth Scan (<code>-sS</code>)</h4>
+                            <p>Varredura semi-aberta. O scanner envia um <code>SYN</code>, espera o <code>SYN-ACK</code>, mas responde imediatamente com um pacote <code>RST</code> (reset) antes que o handshake termine. O daemon do serviço alvo nunca é notificado, escapando dos logs tradicionais.</p>
+                            <span class="badge badge-accent">Semi-Aberto</span>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 2rem;">Scans Inversos (Evasão baseada em RFC)</h3>
+                    <p>Ao explorar o comportamento diferencial entre pilhas TCP de sistemas Linux/BSD (que seguem estritamente a RFC 793) e pilhas Windows, os seguintes tipos de scan são usados para burlar regras de detecção:</p>
+                    <ul>
+                        <li><strong>TCP NULL Scan (<code>-sN</code>):</strong> Envia um pacote com as flags TCP totalmente zeradas (<code>0x00</code>).</li>
+                        <li><strong>TCP FIN Scan (<code>-sF</code>):</strong> Envia apenas a flag <code>FIN</code> ativada, simulando um fechamento prematuro de sessão.</li>
+                        <li><strong>TCP Xmas Scan (<code>-sX</code>):</strong> Envia as flags <code>FIN</code>, <code>PSH</code> e <code>URG</code> ligadas ao mesmo tempo, brilhando como uma árvore de natal na inspeção visual.</li>
+                    </ul>
+                </div>
+
+                <!-- TAB: SIMULADOR INTERATIVO -->
+                <div id="tab-simulator" class="tab-content">
+                    <h3>Simulador Visual de Handshake e Estados de Porta</h3>
+                    <p>Clique em um dos botões abaixo para disparar e visualizar o fluxo exato de pacotes TCP entre a máquina atacante e a máquina alvo.</p>
+                    
+                    <div class="simulator-controls">
+                        <button class="sim-btn" data-scan="connect">TCP Connect (-sT)</button>
+                        <button class="sim-btn" data-scan="syn">SYN Stealth (-sS)</button>
+                        <button class="sim-btn" data-scan="xmas-open">Xmas Scan (Porta Aberta)</button>
+                        <button class="sim-btn" data-scan="xmas-closed">Xmas Scan (Porta Fechada)</button>
+                    </div>
+
+                    <div class="simulator-display">
+                        <div class="node node-attacker">
+                            <span class="node-label">ATACANTE</span>
+                            <span class="ip">10.0.0.15</span>
+                        </div>
+                        
+                        <div class="simulation-canvas-container">
+                            <svg class="simulation-canvas" id="sim-svg" viewBox="0 0 400 150">
+                                <!-- As linhas e textos das mensagens de rede serão gerados via javascript -->
+                            </svg>
+                        </div>
+
+                        <div class="node node-target">
+                            <span class="node-label">ALVO</span>
+                            <span class="ip">127.0.0.1</span>
+                        </div>
+                    </div>
+
+                    <div class="simulator-explanation" id="sim-explanation">
+                        Selecione um método acima para iniciar a simulação visual quadro a quadro.
+                    </div>
+                </div>
+
+                <!-- TAB: MARCO REGULATÓRIO -->
+                <div id="tab-legal" class="tab-content">
+                    <h3>Aspectos Jurídicos e Governança Forense</h3>
+                    <div class="warning-box">
+                        <p><strong>Atenção Legista/Ética:</strong> No Brasil, as atividades de varredura ativa de portas devem ser pautadas por limites contratuais claros (Rules of Engagement - RoE) para não ferirem leis de proteção ou crimes cibernéticos.</p>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h5>Código Penal Brasileiro (Art. 154-A)</h5>
+                        <p>O simples envio de pacotes de testes para mapear portas abertas (camada L4) <strong>não</strong> perfaz o tipo penal de "invasão de dispositivo informático". Porém, a execução de exploits automatizados, injeções ou força bruta sem autorização configura tentativa ou consumação do delito.</p>
+                    </div>
+                    <div class="accordion-item" style="margin-top: 1rem;">
+                        <h5>LGPD (Lei 13.709/2018) e Marco Civil</h5>
+                        <p>Varreduras profundas que realizam a extração de identidades ou mapeamento de dados corporativos lidam diretamente com o tratamento de informações corporativas e dados pessoais. Conexões locais no laboratório estão seguras de tais enquadramentos legais por estarem restritas ao host local.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: DESAFIOS (CTF) -->
+            <section id="pane-desafios" class="content-pane">
+                <div class="page-header">
+                    <h2>Painel de Desafios (Capture The Flag)</h2>
+                    <p>Complete as tarefas abaixo para aprender técnicas de varredura e evasão.</p>
+                </div>
+
+                <div class="challenges-top-bar">
+                    <div class="challenges-controls">
+                        <div class="filter-group">
+                            <label for="filter-module">Categoria:</label>
+                            <select id="filter-module" class="cyber-select">
+                                <option value="all">Todas as Categorias (1-150)</option>
+                                <option value="nmap">Nmap (40 Níveis)</option>
+                                <option value="netcat">Netcat / Portas (35 Níveis)</option>
+                                <option value="wireshark">Wireshark / L4 (35 Níveis)</option>
+                                <option value="ffuf">Ffuf & Gobuster (40 Níveis)</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-difficulty">Dificuldade:</label>
+                            <select id="filter-difficulty" class="cyber-select">
+                                <option value="all">Todas</option>
+                                <option value="fácil">Fácil</option>
+                                <option value="médio">Médio</option>
+                                <option value="difícil">Difícil</option>
+                                <option value="expert">Expert</option>
+                            </select>
+                        </div>
+                        <div class="search-group">
+                            <label for="search-challenge">Buscar:</label>
+                            <input type="text" id="search-challenge" class="cyber-input" placeholder="ID ou palavra-chave...">
+                        </div>
+                    </div>
+                    
+                    <div class="hints-summary-widget" style="display: flex; align-items: center; gap: 1rem;">
+                        <span>Dicas Usadas: <strong id="hints-count" class="text-primary">0/5</strong></span>
+                        <button class="btn btn-danger" id="btn-reset-ctf" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Resetar Progresso</button>
+                    </div>
+                </div>
+
+                <div class="challenges-list" id="challenges-container">
+                    <!-- Gerado dinamicamente via JS (app.js) -->
+                </div>
+            </section>
+
+            <!-- SECTION: IDS CONSOLE -->
+            <section id="pane-ids" class="content-pane">
+                <div class="page-header">
+                    <h2>Console de Monitoramento do IDS (Sniffer Live)</h2>
+                    <p>Visualize as conexões e os pacotes IP/TCP que chegam ao seu host em tempo real.</p>
+                </div>
+
+                <div class="ids-controls">
+                    <button class="btn btn-secondary" id="btn-clear-logs">Limpar Logs</button>
+                    <button class="btn btn-secondary" id="btn-pause-logs">Pausar Captura</button>
+                    <select id="ids-filter-select" class="cyber-select">
+                        <option value="all">Mostrar Tudo (Tráfego Geral)</option>
+                        <option value="alerts">Apenas Alertas e Evasões (Bypass)</option>
+                        <option value="blocked">Apenas Bloqueios do Firewall</option>
+                        <option value="ftp">Apenas Porta FTP (9001)</option>
+                        <option value="custom_ports">Apenas Novas Portas Especiais</option>
+                    </select>
+                    <div class="ids-filter-status">
+                        <span class="pulse-indicator-small" id="ids-status-dot"></span>
+                        <span id="ids-status-text">Escutando loops de rede local...</span>
+                    </div>
+                </div>
+
+                <div class="console-terminal">
+                    <div class="terminal-table-header">
+                        <div class="col-time">Hora</div>
+                        <div class="col-origem">Origem</div>
+                        <div class="col-destino">Destino</div>
+                        <div class="col-flags">Flags TCP</div>
+                        <div class="col-desc">Descrição / Análise do IDS</div>
+                    </div>
+                    <div class="terminal-logs-body" id="ids-logs-container">
+                        <div class="empty-logs">Nenhum tráfego suspeito detectado na rede de testes local até o momento...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: DESEMPENHO -->
+            <section id="pane-desempenho" class="content-pane">
+                <div class="page-header">
+                    <h2>Relatório de Desempenho do Aluno</h2>
+                    <p>Análise estatística em tempo real das suas habilidades ofensivas e progresso nas categorias do laboratório.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-title">Pontuação Total</span>
+                        <div class="stat-value text-accent" id="perf-total-score">0 Pts</div>
+                        <p class="stat-desc">Acumulada resolvendo desafios e otimizando o uso de dicas.</p>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-title">Conclusão do Lab</span>
+                        <div class="stat-value text-success" id="perf-completion-pct">0%</div>
+                        <p class="stat-desc" id="perf-solved-fraction">0 de 150 resolvidos</p>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-title">Perfil Hacker</span>
+                        <div class="stat-value text-warning" id="perf-hacker-profile" style="font-size: 1.8rem; padding: 0.2rem 0;">Script Kiddie</div>
+                        <p class="stat-desc" id="perf-hacker-desc">Iniciando na arte da varredura de redes.</p>
+                    </div>
+                </div>
+
+                <div class="performance-charts-container">
+                    <div class="chart-box">
+                        <h4>Mapeamento de Habilidades por Categoria</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Seu nível de domínio (0% a 100%) em cada área essencial do laboratório.</p>
+                        
+                        <div class="category-bars">
+                            <div class="bar-item">
+                                <div class="bar-info">
+                                    <span>Nmap (Varredura Ativa)</span>
+                                    <span id="bar-pct-nmap">0%</span>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill nmap-fill" id="bar-fill-nmap" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-info">
+                                    <span>Netcat (Conexão e Portas)</span>
+                                    <span id="bar-pct-netcat">0%</span>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill netcat-fill" id="bar-fill-netcat" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-info">
+                                    <span>Wireshark (Análise L4)</span>
+                                    <span id="bar-pct-wireshark">0%</span>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill wireshark-fill" id="bar-fill-wireshark" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="bar-item">
+                                <div class="bar-info">
+                                    <span>Ffuf (Fuzzing Web)</span>
+                                    <span id="bar-pct-ffuf">0%</span>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill ffuf-fill" id="bar-fill-ffuf" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-box">
+                        <h4>Pontos Fortes & Fracos</h4>
+                        <div class="strengths-weaknesses">
+                            <div class="sw-item">
+                                <h5 class="text-success">💪 Pontos Fortes</h5>
+                                <ul id="perf-strengths-list">
+                                    <li>Nenhuma categoria dominada ainda.</li>
+                                </ul>
+                            </div>
+                            <div class="sw-item" style="margin-top: 1rem;">
+                                <h5 class="text-danger">⚠️ Pontos Fracos / Foco</h5>
+                                <ul id="perf-weaknesses-list">
+                                    <li>Inicie os desafios para mapear seus pontos fracos.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hints-category-status" style="margin-top: 1.5rem;">
+                    <h4>Controle de Dicas por Categoria</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Você tem o limite estrito de até 5 dicas para cada categoria separadamente.</p>
+                    <div class="hints-grid">
+                        <div class="hint-status-card">
+                            <span>Nmap</span>
+                            <strong id="perf-hints-nmap">0/5</strong>
+                        </div>
+                        <div class="hint-status-card">
+                            <span>Netcat</span>
+                            <strong id="perf-hints-netcat">0/5</strong>
+                        </div>
+                        <div class="hint-status-card">
+                            <span>Wireshark</span>
+                            <strong id="perf-hints-wireshark">0/5</strong>
+                        </div>
+                        <div class="hint-status-card">
+                            <span>Ffuf</span>
+                            <strong id="perf-hints-ffuf">0/5</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: TOOLKITS -->
+            <section id="pane-toolkits" class="content-pane">
+                <div class="page-header">
+                    <h2>Toolkits do Laboratório Ofensivo</h2>
+                    <p>Guia de referência didático das ferramentas sugeridas para os desafios do Net-Scan Lab, incluindo instruções de instalação para Kali Linux.</p>
+                </div>
+
+                <div class="toolkit-grid">
+                    <!-- CARD: NMAP -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-nmap">NMAP</span>
+                            <h3>Nmap (Network Mapper)</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 1-20, 31-40, 61-75, 126-130</span>
+                            <span class="meta-tag badge-install">📥 Instalação: Pré-instalado (ou <code>sudo apt install nmap</code>)</span>
+                        </div>
+                        <p class="toolkit-desc">A ferramenta padrão de varredura ativa de redes. Utilizada para mapear portas abertas, serviços e versões.</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Comandos Essenciais</h5>
+                            <ul class="toolkit-list">
+                               <li><code>nmap -sS -p 9001-9009 127.0.0.1</code>: SYN scan (Stealth) nas portas do laboratório.</li>
+                               <li><code>nmap -sV -p 9001 127.0.0.1</code>: Detecção de versão do serviço na porta FTP.</li>
+                               <li><code>nmap --script=vuln 127.0.0.1</code>: Varredura com scripts NSE automáticos de vulnerabilidade.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CARD: RUSTSCAN -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-rustscan">RUSTSCAN</span>
+                            <h3>RustScan</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 1-20, 101-104 (Varredura Veloz)</span>
+                            <span class="meta-tag badge-install">📥 Instalação: <code>sudo apt update && sudo apt install rustscan</code></span>
+                        </div>
+                        <p class="toolkit-desc">Um scanner de portas moderno e extremamente veloz baseado em Rust, capaz de escanear 65535 portas em segundos.</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Comandos Essenciais</h5>
+                            <ul class="toolkit-list">
+                               <li><code>rustscan -a 127.0.0.1 -- -sV</code>: Varredura ultrarrápida combinada com detecção de versão do Nmap.</li>
+                               <li><code>rustscan -a 127.0.0.1 -p 9000-9500</code>: Varredura de range de portas específico em milissegundos.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CARD: NETCAT -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-nc">NETCAT</span>
+                            <h3>Netcat (nc)</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 21-30, 101-110, 117-121</span>
+                            <span class="meta-tag badge-install">📥 Instalação: Pré-instalado (ou <code>sudo apt install netcat-openbsd</code>)</span>
+                        </div>
+                        <p class="toolkit-desc">O "canivete suíço" das redes. Permite abrir conexões TCP/UDP cruas para envio de comandos interativos ou Banner Grabbing.</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Comandos Essenciais</h5>
+                            <ul class="toolkit-list">
+                               <li><code>nc 127.0.0.1 9002</code>: Conexão interativa à porta de chat ou shell reversa.</li>
+                               <li><code>nc -nv 127.0.0.1 9001</code>: Banner grabbing do servidor FTP simulado com IP numérico direto.</li>
+                               <li><code>nc -u 127.0.0.1 9009</code>: Envio de pacotes interativos para a porta de escuta UDP.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CARD: FFUF -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-ffuf">FFUF</span>
+                            <h3>Ffuf (Fuzz Faster U Fool)</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 81-100, 131-150</span>
+                            <span class="meta-tag badge-install">📥 Instalação: <code>sudo apt update && sudo apt install ffuf</code></span>
+                        </div>
+                        <p class="toolkit-desc">Fuzzer web escrito em Go, perfeito para localizar caminhos de desenvolvimento vazados e diretórios/arquivos sensíveis.</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Comandos Essenciais</h5>
+                            <ul class="toolkit-list">
+                               <li><code>ffuf -u http://127.0.0.1/FUZZ -w /usr/share/wordlists/dirb/common.txt</code>: Fuzzing básico de rotas.</li>
+                               <li><code>ffuf -u http://127.0.0.1/FUZZ -w wordlist.txt -mc 200,301</code>: Filtra apenas respostas com status HTTP 200 ou 301.</li>
+                               <li><code>ffuf -u http://127.0.0.1/FUZZ -w list.txt -fs 120</code>: Filtra e oculta respostas de tamanho específico (exclui falsos 404).</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CARD: GOBUSTER / DIRBUSTER -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-gobuster">GOBUSTER</span>
+                            <h3>Gobuster & DirBuster</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 81-100, 131-150 (Alternativas de Fuzzing)</span>
+                            <span class="meta-tag badge-install">📥 Instalação: <code>sudo apt install gobuster dirbuster</code></span>
+                        </div>
+                        <p class="toolkit-desc">Ferramentas de descoberta de diretórios e nomes de arquivo com suporte a multi-threads. O DirBuster possui interface gráfica (GUI).</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Comandos Essenciais</h5>
+                            <ul class="toolkit-list">
+                               <li><code>gobuster dir -u http://127.0.0.1/ -w /usr/share/wordlists/dirb/common.txt</code>: Varredura de subpastas web.</li>
+                               <li><code>gobuster dir -u http://127.0.0.1/ -w wordlist.txt -x php,txt,html</code>: Busca rotas forçando extensões.</li>
+                               <li>Use <code>dirbuster</code> no terminal do Kali para abrir a interface visual amigável de fuzzing.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CARD: WIRESHARK -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-wireshark">WIRESHARK</span>
+                            <h3>Wireshark & Tshark</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 41-60 (Análise de Tráfego)</span>
+                            <span class="meta-tag badge-install">📥 Instalação: Pré-instalado (ou <code>sudo apt install wireshark tshark</code>)</span>
+                        </div>
+                        <p class="toolkit-desc">Analisador e sniffer gráfico do tráfego local de rede. Permite inspecionar os detalhes de handshakes, portas e cabeçalhos IP.</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Filtros Úteis</h5>
+                            <ul class="toolkit-list">
+                               <li><code>tcp.port == 9002</code>: Filtra apenas conexões no Netcat interativo do lab.</li>
+                               <li><code>tcp.flags.syn == 1 and tcp.flags.ack == 0</code>: Isola pacotes SYN de escaneamento de portas.</li>
+                               <li><code>ip.addr == 127.0.0.1</code>: Mostra apenas tráfego local de loopback.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CARD: HPING3 -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-hping">HPING3</span>
+                            <h3>Hping3</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 61-75, 126-130 (Pacotes Modificados)</span>
+                            <span class="meta-tag badge-install">📥 Instalação: Pré-instalado (ou <code>sudo apt install hping3</code>)</span>
+                        </div>
+                        <p class="toolkit-desc">Utilitário de crafting manual de pacotes. Perfeito para alterar flags e portas de origem para testar evasões de firewall.</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Comandos Essenciais</h5>
+                            <ul class="toolkit-list">
+                               <li><code>sudo hping3 -F -P -U -p 9001 127.0.0.1</code>: Envia pacotes Xmas personalizados para a porta FTP.</li>
+                               <li><code>sudo hping3 -S -p 9001 -s 53 127.0.0.1</code>: Envia pacote SYN com porta de origem alterada para 53 (Bypass).</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CARD: CURL & WGET -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-curl">CURL</span>
+                            <h3>Curl & Wget</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 115, 116, 122, 123 (Requisições HTTP)</span>
+                            <span class="meta-tag badge-install">📥 Instalação: Pré-instalado (ou <code>sudo apt install curl wget</code>)</span>
+                        </div>
+                        <p class="toolkit-desc">Clientes HTTP via linha de comando úteis para enviar cookies, alterar cabeçalhos de navegador e testar respostas Web.</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Comandos Essenciais</h5>
+                            <ul class="toolkit-list">
+                               <li><code>curl -A "Admin-Browser" http://127.0.0.1/</code>: Faz requisição alterando o User-Agent.</li>
+                               <li><code>curl -b "admin=true" http://127.0.0.1/</code>: Envia um Cookie customizado via cabeçalho.</li>
+                               <li><code>curl -X POST -d "param=value" http://127.0.0.1/</code>: Envia parâmetros em lote via POST.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- CARD: NIKTO -->
+                    <div class="toolkit-card">
+                        <div class="toolkit-header">
+                            <span class="toolkit-badge badge-nikto">NIKTO</span>
+                            <h3>Nikto</h3>
+                        </div>
+                        <div class="toolkit-meta">
+                            <span class="meta-tag badge-ctf">🎯 CTFs: Desafios 81-100 (Scanner de Vulnerabilidade Web)</span>
+                            <span class="meta-tag badge-install">📥 Instalação: <code>sudo apt update && sudo apt install nikto</code></span>
+                        </div>
+                        <p class="toolkit-desc">Scanner de vulnerabilidade web simples que pesquisa por caminhos de arquivos de backup perigosos ou configurações incorretas.</p>
+                        <div class="toolkit-section">
+                            <h5>⚡ Comandos Essenciais</h5>
+                            <ul class="toolkit-list">
+                               <li><code>nikto -h http://127.0.0.1/</code>: Executa uma varredura geral e agressiva contra o servidor web local.</li>
+                               <li><code>nikto -h http://127.0.0.1/ -p 8080</code>: Permite mapear portas alternativas do laboratório.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FOOTER DO PROJETO -->
+            <footer class="main-footer">
+                <p>&copy; Copyright Guilherme Legal de Oliveira.</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Script principal de lógica -->
+    <script src="app.js"></script>
+</body>
+</html>

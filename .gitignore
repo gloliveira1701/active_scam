@@ -1,0 +1,14 @@
+# Gabaritos e chaves de respostas
+gabarito.md
+gabarito_processos.md
+
+# Cache do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arquivos do sistema e IDEs
+.DS_Store
+.vscode/
+.idea/
